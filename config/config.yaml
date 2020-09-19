@@ -1,0 +1,5 @@
+host: 'dbserver.mif.pg.gda.pl'
+port: '1521'
+service_name: 'ORACLEMIF'
+user: 'GRZKUP_P'
+password: 't3R5M'
