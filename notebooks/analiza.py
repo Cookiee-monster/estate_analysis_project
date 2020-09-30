@@ -41,6 +41,10 @@ functions_path = path.parent.joinpath("src").joinpath("python")
 sys.path.append(str(functions_path))
 # -
 
+pd.options.display.max_columns = 40
+pd.options.display.max_rows = 500
+pd.options.display.max_colwidth = None
+
 from data_cleaning_and_EDA import obtain_district, obtain_localisation, obtain_travel_info_driving, obtain_travel_info_transit, create_bar_plot
 
 # Wczytanie schematu typów danych
@@ -82,10 +86,6 @@ df.to_csv(outputs_path.joinpath("input_dataset.csv"), encoding="windows-1250")
 df = pd.read_csv(outputs_path.joinpath("input_dataset.csv"), encoding="windows-1250", dtype=dtypes, index_col=0)
 
 # ### 2. Sprawdzenie jakości zbioru + czyszczenie
-
-pd.options.display.max_columns = 40
-pd.options.display.max_rows = 500
-pd.options.display.max_colwidth = None
 
 # 5 pierwszych rekordów
 df.head()
@@ -141,7 +141,7 @@ wrong_rows = ~df["miasto"].isin(["Gdańsk", "Gdynia", "Sopot"])
 df_corrected.loc[wrong_rows, ["ulica"]] = df_corrected.loc[wrong_rows, "miasto"]
 df_corrected.loc[wrong_rows, ["miasto"]] = df_corrected.loc[wrong_rows, "dzielnica"]
 
-# Wstawienie wartości nan dla zmianennej "dzielnica" błędnych rekordów
+# Wstawienie wartości nan dla zmiennej "dzielnica" błędnych rekordów
 df_corrected.loc[wrong_rows, "dzielnica"] = np.nan
 
 # Sprawdzenie unikalnych wartości zmiennej "miasto"
@@ -191,13 +191,21 @@ df_corrected_with_districts[missing_district_index]
 # Zapis zbioru do pliku CSV
 df_corrected_with_districts.to_csv(outputs_path.joinpath("input_dataset_with_districts.csv"), encoding="windows-1250")
 
-# Usunięcie zmiennych tymczasowych "dzielnica_temp_1" oraz "dzielnica_temp_2"
-df_with_localisation = df_with_localisation.drop(columns=["dzielnica_temp_1", "dzielnica_temp_2"])
+# Wczytaj rezultat z pliku CSV
+df_corrected_with_districts = pd.read_csv(outputs_path.joinpath("input_dataset_with_districts.csv"), 
+                                   encoding="windows-1250", 
+                                   index_col=0,
+                                   dtype=dtypes)
+
+df_corrected_with_districts["dzielnica"] = df_corrected_with_districts["dzielnica"].map(district_names_mapping).fillna(df_with_localisation_cleaned["dzielnica"])
 
 # ### 3. Pobranie danych dodatkowych
 
 # Skopiowanie ramki danych przed dalszymi działaniami 
 df_with_localisation = df_corrected_with_districts.copy()
+
+# Usunięcie zmiennych tymczasowych "dzielnica_temp_1" oraz "dzielnica_temp_2"
+df_with_localisation = df_with_localisation.drop(columns=["dzielnica_temp_1", "dzielnica_temp_2"])
 
 # W celu wizulizacji danych przestrzennych jakimi są oferty zakupu nieruchomości niezbędne jest geokodowanie adresów by uzyskać współrzędne geograficzne. 
 
@@ -272,6 +280,50 @@ df_with_localisation_cleaned.loc[:, ["czas_zbiorowy", "dystans_zbiorowy"]] = tra
 # -
 
 df_with_localisation_cleaned.head()
+
+# Sprawdzenie wartości unikalnych dla dzielnic każdego z miast.
+
+sorted(df_with_localisation_cleaned[df_with_localisation_cleaned["miasto"] == "Gdańsk"]["dzielnica"].unique())
+
+# Analizując unikalne wartości dzielnic Gdańska zdecydowano się na ujednolicenie nazw dla następujących dzielnic:
+# - Żabianka i Żabianka-Wejhera-Jelitkowo-Tysiąclecia - na Żabianka
+# - Wrzeszcz i Wrzeszcz Górny - na Wrzeszcz
+# - Zaspa i Zaspa-Młyniec - na Zaspa
+# - Nowe Ujeścisko na Wzgórze Mickiewicza
+
+sorted(df_with_localisation_cleaned[df_with_localisation_cleaned["miasto"] == "Gdynia"]["dzielnica"].unique())
+
+# Analizując unikalne wartości dzielnic Gdyni zdecydowano się na ujednolicenie nazw dla następujących dzielnic:
+# - Witomino i Witomino - Leśniczówka na Witomino
+# - Wzgórze Św. Maksymiliana i Wzgórze Świętego Maksymiliana na Wzgórze Św. Maksymiliana
+
+sorted(df_with_localisation_cleaned[df_with_localisation_cleaned["miasto"] == "Sopot"]["dzielnica"].unique())
+
+# Analizując unikalne wartości dzielnic Sopotu zdecydowano się na ujednolicenie nazw dla następujących dzielnic:
+# - Górny i Osiedle Mickiewicza na Górny
+#
+# Dodatkowo okazło się, że występują wartości "województwo pomorskie" 
+
+df_with_localisation_cleaned[df_with_localisation_cleaned["dzielnica"] == "województwo pomorskie"]
+
+# Wyfiltrowane rekordy odpowiadają dzielnicy Karlikowo, która zostanie do nich przyporządkowana. 
+
+# +
+# Zamiana wspomnianych wyżej nazw dzielnic 
+
+district_names_mapping = {"Żabianka-Wejhera-Jelitkowo-Tysiąclecia": "Żabianka",
+                          "Wrzeszcz Górny": "Wrzeszcz",
+                          "Witomino-Leśniczówka": "Witomino",
+                          "Wzgórze Świętego Maksymiliana": "Wzgórze Św. Maksymiliana",
+                          "Osiedle Mickiewicza": "Górny",
+                          "województwo pomorskie": "Karlikowo",
+                          "Nowe Ujeścisko": "Wzgórze Mickiewicza",
+                          "Zaspa-Młyniec": "Zaspa",
+                          "Pustki Cisowskie-Demptowo": "Pustki Cisowskie"
+                         }
+
+df_with_localisation_cleaned["dzielnica"] = df_with_localisation_cleaned["dzielnica"].map(district_names_mapping).fillna(df_with_localisation_cleaned["dzielnica"])
+# -
 
 # Zapisz rezultat do pliku CSV
 df_with_localisation_cleaned.to_csv(outputs_path.joinpath("input_dataset_with_localisation_cleaned.csv"), encoding="windows-1250")
@@ -446,14 +498,21 @@ predictors_df
 
 df_with_localisation_cleaned.head()
 
-df_for_modelling = df_with_localisation_cleaned.copy()
+df_for_modelling = df_with_localisation_cleaned.drop(columns=columns_not_for_modelling, axis=1).copy()
+
+df_for_modelling.head()
+
+from sklearn.feature_selection import VarianceThreshold
+
+pd.set_option('display.float_format', lambda x: '%.3f' % x)
+
+df_for_modelling.var()
 
 # +
 # Enkodowanie zmiennej miasto z użyciem One Hot Encoder
 from sklearn.preprocessing import OneHotEncoder
 
 ohe = OneHotEncoder(sparse=False)
-
 # -
 
 ohe.fit_transform(X=df_for_modelling[["miasto"]])
@@ -480,11 +539,36 @@ sns.heatmap(matrix_df, vmin=0, vmax=1, cmap="Blues", linewidths=0.5, annot=True)
 
 # ### 5. Tworzenie i transformacja zmiennych
 
-df_new_features = df_with_localisation_cleaned.copy()
+# +
+columns_not_for_modelling = ["id", "id_offers", "ulica", "tytul", "latitude", "longitude", "cena", "numer_oferty", "garaz_miejsce"]
+
+df_for_modelling = df_with_localisation_cleaned.drop(columns = columns_not_for_modelling, axis=1).copy()
+# -
+
+df_for_modelling.head()
+
+df_for_modelling.info()
+
+# Z uwagi na dużą liczbę brakujących danych przy jednocześnie małej wariancji wartości zmiennych **zabudowa**, **ogrzewanie** oraz **forma_wlasnosci** zecydowano się je usunąć ze zbioru. 
+#
+# Dla zmiennych **rok_budowy**, **stan_wykonczenia** oraz **czas_zbiorowy** zecydowano się usunąć rekordy zawierające brakujące dane
+
+# +
+df_for_modelling = df_for_modelling.drop(columns=["zabudowa", "ogrzewanie", "forma_wlasnosci"], axis=1)
+
+missing_data_index = ~df_for_modelling["rok_budowy"].isna() & ~df_for_modelling["stan_wykonczenia"].isna() & \
+~df_for_modelling["czas_zbiorowy"].isna()
+
+
+df_for_modelling = df_for_modelling[missing_data_index]
+# -
+
+df_for_modelling.info()
 
 
 # +
-#Tworzenie zmiennej wiek budynku - różnica między bieżącym rokiem a rokiem budowy, dla budynków w budowie oraz budynków tegorocznych wartość wynosi 0
+# Tworzenie zmiennej wiek budynku - różnica między bieżącym rokiem a rokiem budowy, 
+# dla budynków w budowie oraz budynków tegorocznych wartość wynosi 0
 
 def calculate_building_age(built_year):
     year = datetime.datetime.now().year
@@ -492,7 +576,47 @@ def calculate_building_age(built_year):
         built_year = year
     return year - built_year
 
-df_new_features["wiek_budynku"] = df_new_features["rok_budowy"].apply(calculate_building_age)
+df_for_modelling["wiek_budynku"] = df_for_modelling["rok_budowy"].apply(calculate_building_age)
 
-#Tworzennie zmiennej binarnej "w_budowie" dla daty budowy 2021 i później
-df_new_features["w_budowie"] = df_new_features["rok_budowy"].apply(lambda x: 1 if (x > datetime.datetime.now().year) else 0)
+# Tworzennie zmiennej binarnej "w_budowie" dla daty budowy 2021 i później
+df_for_modelling["w_budowie"] = df_for_modelling["rok_budowy"].apply(lambda x: 1 if (x > datetime.datetime.now().year) else 0)
+
+# Usunięcie zmiennej źródłowej - rok_budowy
+df_for_modelling = df_for_modelling.drop(columns="rok_budowy", axis=1)
+
+# +
+# Tworzenie nowej zmiennej - dzielnica nadmorska na bazie nazw dzielnic sąsiadujących z pasem nadmorskim
+
+districts_at_see = ['Brzeźno', 'Jelitkowo', 'Krakowiec-Górki Zachodnie', 'Przymorze', 'Stogi', 'Wyspa Sobieszewska', 
+                    'Babie Doły', 'Orłowo', 'Redłowo', 'Wzgórze Św. Maksymiliana', 'Śródmieście', 'Kamienna Góra', 'Oksywie',
+                    'Karlikowo', 'Kamienny Pototok', 'Centrum', 'Dolny']
+
+df_for_modelling["nad_morzem"] = df_for_modelling["dzielnica"].apply(lambda x: 1 if x in districts_at_see else 0)
+df_for_modelling = df_for_modelling.drop(columns=["dzielnica"], axis=1)
+
+# +
+# Enkodowanie zmiennej miasto oraz rynek z użyciem One Hot Encoder
+df_for_modelling = df_for_modelling.join(pd.get_dummies(df_new_features["miasto"]))
+
+df_for_modelling = df_for_modelling.join(pd.get_dummies(df_new_features["rynek"], prefix="rynek"))
+
+df_for_modelling = df_for_modelling.join(pd.get_dummies(df_new_features["stan_wykonczenia"], prefix="rynek"))
+
+df_for_modelling = df_for_modelling.drop(columns=["rynek", "miasto", "stan_wykonczenia"], axis=1)
+
+# +
+# Zamiana wartości pietro na zmienną liczbową
+
+dict_pietro = {"parter": 0, "suterena": 0, ">_10": 15}
+
+df_for_modelling["pietro"] = df_for_modelling["pietro"].map(dict_pietro).fillna(df_for_modelling["pietro"])
+
+index_poddasze = df_for_modelling["pietro"] == "poddasze"
+
+df_for_modelling.loc[index_poddasze, "pietro"] = df_for_modelling.loc[
+    index_poddasze, "liczba_pieter"].apply(lambda liczba_pieter: liczba_pieter if liczba_pieter <= 10 else 15)
+
+df_for_modelling["pietro"] = pd.to_numeric(df_for_modelling["pietro"]).astype("int8")
+# -
+
+df_for_modelling
