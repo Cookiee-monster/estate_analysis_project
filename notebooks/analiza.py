@@ -96,11 +96,14 @@ engine = create_engine(connection_string)
 sql_query = """SELECT * from grzkup_p.otodom_offers_details where id in (SELECT id from (SELECT DISTINCT numer_oferty, id from grzkup_p.otodom_offers_details)) ORDER BY id"""
 df = pd.read_sql_query(sql=sql_query, con=engine, index_col="id")
 
-# Zapisz zbiór jako plik csv (backup)
-df.to_csv(outputs_path.joinpath("input_dataset.csv"), encoding="windows-1250")
+# +
+# # Zapisz zbiór jako plik csv (backup)
+# df.to_csv(outputs_path.joinpath("input_dataset.csv"), encoding="windows-1250")
 
-# Wczytaj zbiór z pliku CSV 
-df = pd.read_csv(outputs_path.joinpath("input_dataset.csv"), encoding="windows-1250", dtype=dtypes, index_col=0)
+# +
+# # Wczytaj zbiór z pliku CSV - jeśli brak połączenia z bazą danych
+# df = pd.read_csv(outputs_path.joinpath("input_dataset.csv"), encoding="windows-1250", dtype=dtypes, index_col=0)
+# -
 
 # ### 2. Sprawdzenie jakości zbioru + czyszczenie
 
@@ -121,7 +124,7 @@ df[df["rok_budowy"] < 1100]
 
 # Sprawdzenie rejonu dla ulicy Narcyzowej (bloki mieszkalne) wskazuje, że najprawdopodobniej 
 # autor ogłoszenia miał na myśli rok 1980
-df[df["rok_budowy"] == 80] = 1980
+df[df["rok_budowy"] == 80]["rok_budowy"] = 1980
 
 # W drugim przypadku, z uwagi na możliwość błędnego uzupełnienia wartości, zdecydowano się wyrzucić rekord z rokiem budowy jako 1005
 to_drop_index = df[df["rok_budowy"] == 1005].index
@@ -136,7 +139,7 @@ df[df["rok_budowy"] > 2020]["rok_budowy"]
 df[df["rok_budowy"] == 20004]
 
 # Poprawienie wartości na rok 2004
-df[df["rok_budowy"] == 20004] = 2004
+df[df["rok_budowy"] == 20004]["rok_budowy"] = 2004
 # -
 
 # Liczba wartości w kolumnie miasto powinny być tylko Gdańsk, Sopot, Gdynia
@@ -227,18 +230,14 @@ df_with_localisation = df_with_localisation.drop(columns=["dzielnica_temp_1", "d
 missing_city_street_index = ~df_corrected_with_districts["miasto"].isna() & ~df_corrected_with_districts["ulica"].isna()
 
 # Współrzędne każdej z nieruchomości będzie pobrana wykorzystując Google API obudowane w funkcji obtain_localisation
-localisation_results = df_with_localisation.loc[missing_city_street_index, ["miasto", "ulica"]].apply(obtain_localisation, axis=1, result_type="expand")
+localisation_results = df_with_localisation.loc[missing_city_street_index, ["miasto", "ulica"]].\
+apply(obtain_localisation, axis=1, result_type="expand")
+
 localisation_results.columns = ["latitude", "longitude"]
 # -
 
 # Wstawienie informacji o współrzędnych do głównej ramki danych
 df_with_localisation.loc[missing_city_street_index, ["latitude", "longitude"]] = localisation_results.loc[:, ["latitude", "longitude"]]
-
-# Wyświetlenie podglądu ramki danych
-df_with_localisation.head()
-
-# Sprawdzenie liczby rekordów dla których udało się pozyskać współrzędne
-df_with_localisation["latitude"].isna().value_counts()
 
 # Zapisz rezultat do pliku CSV
 df_with_localisation.to_csv(outputs_path.joinpath("input_dataset_with_localisation.csv"), encoding="windows-1250")
@@ -248,6 +247,9 @@ df_with_localisation = pd.read_csv(outputs_path.joinpath("input_dataset_with_loc
                                    encoding="windows-1250", 
                                    index_col=0,
                                    dtype=dtypes)
+
+# Sprawdzenie liczby rekordów dla których udało się pozyskać współrzędne
+df_with_localisation["latitude"].isna().value_counts()
 
 # Sprawdzenie brakujących wartości dla każdej ze zmiennych
 df_with_localisation.isna().sum()
@@ -738,7 +740,7 @@ X_train_wo, X_test_wo, y_train_wo, y_test_wo = train_test_split(X_without_outlie
 print(f"Rozmiar zbioru treningowego: {X_train_wo.shape}")
 print(f"Rozmiar zbioru testowego: {X_test_wo.shape}")
 
-lgbm_model = lgbm.LGBMRegressor(n_jobs=-1, n_iter=200)
+lgbm_model = LGBMRegressor(n_jobs=-1, n_iter=200)
 random_search_without_outliers = RandomizedSearchCV(estimator=lgbm_model, 
                                                     param_distributions=random_search_grid, 
                                                     n_iter=50, 
