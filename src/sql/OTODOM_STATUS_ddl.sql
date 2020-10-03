@@ -1,0 +1,36 @@
+--------------------------------------------------------
+--  File created - piπtek-paüdziernika-02-2020   
+--------------------------------------------------------
+--------------------------------------------------------
+--  DDL for Table OTODOM_STATUS
+--------------------------------------------------------
+
+  CREATE TABLE "GRZKUP_P"."OTODOM_STATUS" 
+   (	"ID" NUMBER, 
+	"STATUS" VARCHAR2(20 BYTE)
+   ) PCTFREE 10 PCTUSED 40 INITRANS 1 MAXTRANS 255 NOCOMPRESS LOGGING
+  STORAGE(INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+  PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1 BUFFER_POOL DEFAULT)
+  TABLESPACE "GRZKUP_P" ;
+--------------------------------------------------------
+--  DDL for Index OTODOM_STATUS_INDEX1
+--------------------------------------------------------
+
+  CREATE INDEX "GRZKUP_P"."OTODOM_STATUS_INDEX1" ON "GRZKUP_P"."OTODOM_STATUS" ("ID") 
+  PCTFREE 10 INITRANS 2 MAXTRANS 255 
+  STORAGE(INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+  PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1 BUFFER_POOL DEFAULT)
+  TABLESPACE "GRZKUP_P" ;
+--------------------------------------------------------
+--  Constraints for Table OTODOM_STATUS
+--------------------------------------------------------
+
+  ALTER TABLE "GRZKUP_P"."OTODOM_STATUS" ADD CONSTRAINT "OTODOM_STATUS_PK" PRIMARY KEY ("ID")
+  USING INDEX PCTFREE 10 INITRANS 2 MAXTRANS 255 
+  STORAGE(INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+  PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1 BUFFER_POOL DEFAULT)
+  TABLESPACE "GRZKUP_P"  ENABLE;
+ 
+  ALTER TABLE "GRZKUP_P"."OTODOM_STATUS" MODIFY ("ID" NOT NULL ENABLE);
+ 
+  ALTER TABLE "GRZKUP_P"."OTODOM_STATUS" MODIFY ("STATUS" NOT NULL ENABLE);
