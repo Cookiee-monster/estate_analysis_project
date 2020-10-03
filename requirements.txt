@@ -31,9 +31,3 @@ seaborn==0.11.0
 geopy==2.0.0
 simplejson==3.17.2
 nbformat==5.0.7
-yellowbrick==1.1
-shap==0.36.0
-scipy==1.5.2
-jupytext==1.6.0
-ipykernel==5.3.4
-lightgbm==3.0.0
