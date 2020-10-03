@@ -11,7 +11,7 @@ import simplejson
 import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.metrics import mean_squared_error
-from IPython import display
+from IPython.display import display
 
 # Zarządzanie ścieżkami
 cwd = Path.cwd()

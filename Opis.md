@@ -8,7 +8,9 @@ Pierwszym etapem było pobranie listy adresów szczegółowych ofert z wszystkic
 ![image](https://user-images.githubusercontent.com/43417324/94979766-18a00080-0525-11eb-8c26-111144463a12.png)
 
 Poszczególne adresy URL szczegółowych ofert zostały pobrane i zapisane w bazie danych w tabeli OTODOM_OFFERS wraz z dat
-ą scrapowania oraz statusem 0 (oferta nie została jeszcze poddana scrapingowi)
+ą scrapowania oraz statusem 0 (oferta nie została jeszcze poddana scrapingowi).
+
+Została do tego stworzona i wykorzystana funkcja `collect_offers_urls(config, base_url)`
 
 ![image](https://user-images.githubusercontent.com/43417324/94979960-49346a00-0526-11eb-8b72-eeb50f7976bd.png)
 
@@ -39,6 +41,7 @@ Gdy informacja się pojawiała przypisywano jej wartość 1, przy braku wartoś�
 W przypadku udanego pobrania danych ze strony oferty, data pobrania danych oraz status (1) został zaktualizowany w
  tabeli OTODOM_OFFERS. W przeciwnym przypadku status został zaktualizowany jako 99.
  
+ Została do tego stworzona i wykorzystana funkcja `scrape_offers(config, limit_offers_to_scrape=None)`
 ##### 3. Wykorzystanie zbioru danych do analizy
 Przygotowany zbiór został pobrany do pamięci Jupyter Notebook, korzystając z bibliotek pandas, sqlalchemy oraz
  cx_Oracle, gdzie został poddany analizie.

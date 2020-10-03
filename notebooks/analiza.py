@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.6.0
+#       jupytext_version: 1.4.0
 #   kernelspec:
 #     display_name: estate
 #     language: python
@@ -57,7 +57,12 @@ pd.options.display.max_colwidth = None
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
 # Import funkcji stworzonych w ramach projektu
-from data_cleaning_and_EDA import obtain_district, obtain_localisation, obtain_travel_info_driving, obtain_travel_info_transit, create_bar_plot
+from data_cleaning_and_EDA import (obtain_district, 
+                                   obtain_localisation, 
+                                   obtain_travel_info_driving, 
+                                   obtain_travel_info_transit, 
+                                   create_bar_plot, 
+                                   calculate_metrics)
 
 # Wczytanie schematu typów danych
 with open(dtypes_path, "r") as ymlfile:
@@ -91,11 +96,14 @@ engine = create_engine(connection_string)
 sql_query = """SELECT * from grzkup_p.otodom_offers_details where id in (SELECT id from (SELECT DISTINCT numer_oferty, id from grzkup_p.otodom_offers_details)) ORDER BY id"""
 df = pd.read_sql_query(sql=sql_query, con=engine, index_col="id")
 
-# Zapisz zbiór jako plik csv (backup)
-df.to_csv(outputs_path.joinpath("input_dataset.csv"), encoding="windows-1250")
+# +
+# # Zapisz zbiór jako plik csv (backup)
+# df.to_csv(outputs_path.joinpath("input_dataset.csv"), encoding="windows-1250")
 
-# Wczytaj zbiór z pliku CSV 
-df = pd.read_csv(outputs_path.joinpath("input_dataset.csv"), encoding="windows-1250", dtype=dtypes, index_col=0)
+# +
+# # Wczytaj zbiór z pliku CSV - jeśli brak połączenia z bazą danych
+# df = pd.read_csv(outputs_path.joinpath("input_dataset.csv"), encoding="windows-1250", dtype=dtypes, index_col=0)
+# -
 
 # ### 2. Sprawdzenie jakości zbioru + czyszczenie
 
@@ -108,7 +116,7 @@ df.describe()
 # Zmienna "rok_budowy" zawiera błędne wartości na co wskazuje wartość minimalna 80 i maksymalna 20004. 
 
 # Sprawdzenie ofert dla budynków zbudowanych wcześniej niż 1900 rok
-df_with_localisation_cleaned[df_with_localisation_cleaned["rok_budowy"] < 1900]["rok_budowy"]
+df[df["rok_budowy"] < 1900]["rok_budowy"]
 
 # +
 # Sprawdzenie rekordów z najniższymi wartościami - 80 i 1005 rok budowy
@@ -116,7 +124,7 @@ df[df["rok_budowy"] < 1100]
 
 # Sprawdzenie rejonu dla ulicy Narcyzowej (bloki mieszkalne) wskazuje, że najprawdopodobniej 
 # autor ogłoszenia miał na myśli rok 1980
-df[df["rok_budowy"] == 80] = 1980
+df[df["rok_budowy"] == 80]["rok_budowy"] = 1980
 
 # W drugim przypadku, z uwagi na możliwość błędnego uzupełnienia wartości, zdecydowano się wyrzucić rekord z rokiem budowy jako 1005
 to_drop_index = df[df["rok_budowy"] == 1005].index
@@ -131,7 +139,7 @@ df[df["rok_budowy"] > 2020]["rok_budowy"]
 df[df["rok_budowy"] == 20004]
 
 # Poprawienie wartości na rok 2004
-df[df["rok_budowy"] == 20004] = 2004
+df[df["rok_budowy"] == 20004]["rok_budowy"] = 2004
 # -
 
 # Liczba wartości w kolumnie miasto powinny być tylko Gdańsk, Sopot, Gdynia
@@ -207,9 +215,6 @@ df_corrected_with_districts = pd.read_csv(outputs_path.joinpath("input_dataset_w
                                    index_col=0,
                                    dtype=dtypes)
 
-df_corrected_with_districts["dzielnica"] = df_corrected_with_districts["dzielnica"].map(district_names_mapping).\
-fillna(df_with_localisation_cleaned["dzielnica"])
-
 # ### 3. Pobranie danych dodatkowych
 
 # Skopiowanie ramki danych przed dalszymi działaniami 
@@ -225,18 +230,14 @@ df_with_localisation = df_with_localisation.drop(columns=["dzielnica_temp_1", "d
 missing_city_street_index = ~df_corrected_with_districts["miasto"].isna() & ~df_corrected_with_districts["ulica"].isna()
 
 # Współrzędne każdej z nieruchomości będzie pobrana wykorzystując Google API obudowane w funkcji obtain_localisation
-localisation_results = df_with_localisation.loc[missing_city_street_index, ["miasto", "ulica"]].apply(obtain_localisation, axis=1, result_type="expand")
+localisation_results = df_with_localisation.loc[missing_city_street_index, ["miasto", "ulica"]].\
+apply(obtain_localisation, axis=1, result_type="expand")
+
 localisation_results.columns = ["latitude", "longitude"]
 # -
 
 # Wstawienie informacji o współrzędnych do głównej ramki danych
 df_with_localisation.loc[missing_city_street_index, ["latitude", "longitude"]] = localisation_results.loc[:, ["latitude", "longitude"]]
-
-# Wyświetlenie podglądu ramki danych
-df_with_localisation.head()
-
-# Sprawdzenie liczby rekordów dla których udało się pozyskać współrzędne
-df_with_localisation["latitude"].isna().value_counts()
 
 # Zapisz rezultat do pliku CSV
 df_with_localisation.to_csv(outputs_path.joinpath("input_dataset_with_localisation.csv"), encoding="windows-1250")
@@ -246,6 +247,9 @@ df_with_localisation = pd.read_csv(outputs_path.joinpath("input_dataset_with_loc
                                    encoding="windows-1250", 
                                    index_col=0,
                                    dtype=dtypes)
+
+# Sprawdzenie liczby rekordów dla których udało się pozyskać współrzędne
+df_with_localisation["latitude"].isna().value_counts()
 
 # Sprawdzenie brakujących wartości dla każdej ze zmiennych
 df_with_localisation.isna().sum()
@@ -277,11 +281,11 @@ df_with_localisation_cleaned.isna().sum()
 # Wartości sprawdzono zarówno dla podróży samochodem osobowym jak i transportem zbiorowym. 
 
 # Pobranie danych o czasie podróży i dystansie do tymczasowej ramki danych travel_info_results_driving
-travel_info_result_driving = df_with_localisation.loc[:, ["miasto", "dzielnica", "ulica"]].apply(obtain_travel_info_driving, axis=1, result_type="expand")
+travel_info_result_driving = df_with_localisation_cleaned.loc[:, ["miasto", "dzielnica", "ulica"]].apply(obtain_travel_info_driving, axis=1, result_type="expand")
 travel_info_results_driving.columns = ["czas_auto", "dystans_auto"]
 
 # Pobranie danych o czasie podróży i dystansie do tymczasowej ramki danych travel_info_results_transit
-travel_info_result_transit = df_with_localisation.loc[:, ["miasto", "dzielnica", "ulica"]].apply(obtain_travel_info_transit, axis=1, result_type="expand")
+travel_info_result_transit = df_with_localisation_cleaned.loc[:, ["miasto", "dzielnica", "ulica"]].apply(obtain_travel_info_transit, axis=1, result_type="expand")
 travel_info_results_transit.columns = ["czas_zbiorowy", "dystans_zbiorowy"]
 
 # +
@@ -472,13 +476,6 @@ for feature in ["teren_zamkniety",
 # - występowanie informacji o przynależności piwnicy stanowi 50 % ogłoszeń
 # - blisko 25 % nieruchomości nie posiada monitoringu czy ochrony
 
-# +
-# for feature in ["powierzchnia", "cena", "cena_metr", "czas_auto", "czas_zbiorowy", "dystans_auto", "dystans_zbiorowy"]:
-#     fig = go.Figure(px.histogram(data_frame=df_with_localisation_cleaned, x=feature, nbins=20))
-#     fig.show()
-#     fig = go.Figure(px.box(data_frame=df_with_localisation_cleaned, x=feature))
-#     fig.show()
-
 for feature in ["powierzchnia", "cena", "cena_metr", "czas_auto", "czas_zbiorowy", "dystans_auto", "dystans_zbiorowy"]:
     fig = plt.figure(figsize=(16,8))
     sns.histplot(data=df_with_localisation_cleaned, x=feature)
@@ -486,7 +483,6 @@ for feature in ["powierzchnia", "cena", "cena_metr", "czas_auto", "czas_zbiorowy
     fig = plt.figure(figsize=(16,8))
     sns.boxplot(data=df_with_localisation_cleaned, y=feature)
     plt.plot()
-# -
 
 # Dzięki wykresom boxplot można zauważyć obserwacje odstające w skali całego zbioru. Są to nieruchomości o powierzchni powyżej 120 metrów kwadratowych i cenie za metr 20000. Analizując wykres boxplot oraz histogram dla zmiennej cena, można zauważyć kilka bardzo wysokich ofert - w tym oferta z ceną 16 milionów złotych. 
 
@@ -688,7 +684,7 @@ random_search_grid = {"learning_rate": uniform(0.0001, 0.1),
                      }
 
 # Przygotowanie obiektów estymatora oraz metody do szukania hyperparametrów
-lgbm_model = lgbm.LGBMRegressor(n_jobs=-1, n_iter=200)
+lgbm_model = LGBMRegressor(n_jobs=-1, n_iter=200)
 random_search = RandomizedSearchCV(estimator=lgbm_model, 
                                    param_distributions=random_search_grid, 
                                    n_iter=50, 
@@ -744,7 +740,7 @@ X_train_wo, X_test_wo, y_train_wo, y_test_wo = train_test_split(X_without_outlie
 print(f"Rozmiar zbioru treningowego: {X_train_wo.shape}")
 print(f"Rozmiar zbioru testowego: {X_test_wo.shape}")
 
-lgbm_model = lgbm.LGBMRegressor(n_jobs=-1, n_iter=200)
+lgbm_model = LGBMRegressor(n_jobs=-1, n_iter=200)
 random_search_without_outliers = RandomizedSearchCV(estimator=lgbm_model, 
                                                     param_distributions=random_search_grid, 
                                                     n_iter=50, 
