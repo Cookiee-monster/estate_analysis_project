@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.6.0
+#       jupytext_version: 1.4.0
 #   kernelspec:
 #     display_name: estate
 #     language: python
@@ -57,7 +57,12 @@ pd.options.display.max_colwidth = None
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
 # Import funkcji stworzonych w ramach projektu
-from data_cleaning_and_EDA import obtain_district, obtain_localisation, obtain_travel_info_driving, obtain_travel_info_transit, create_bar_plot
+from data_cleaning_and_EDA import (obtain_district, 
+                                   obtain_localisation, 
+                                   obtain_travel_info_driving, 
+                                   obtain_travel_info_transit, 
+                                   create_bar_plot, 
+                                   calculate_metrics)
 
 # Wczytanie schematu typów danych
 with open(dtypes_path, "r") as ymlfile:
@@ -108,7 +113,7 @@ df.describe()
 # Zmienna "rok_budowy" zawiera błędne wartości na co wskazuje wartość minimalna 80 i maksymalna 20004. 
 
 # Sprawdzenie ofert dla budynków zbudowanych wcześniej niż 1900 rok
-df_with_localisation_cleaned[df_with_localisation_cleaned["rok_budowy"] < 1900]["rok_budowy"]
+df[df["rok_budowy"] < 1900]["rok_budowy"]
 
 # +
 # Sprawdzenie rekordów z najniższymi wartościami - 80 i 1005 rok budowy
@@ -207,9 +212,6 @@ df_corrected_with_districts = pd.read_csv(outputs_path.joinpath("input_dataset_w
                                    index_col=0,
                                    dtype=dtypes)
 
-df_corrected_with_districts["dzielnica"] = df_corrected_with_districts["dzielnica"].map(district_names_mapping).\
-fillna(df_with_localisation_cleaned["dzielnica"])
-
 # ### 3. Pobranie danych dodatkowych
 
 # Skopiowanie ramki danych przed dalszymi działaniami 
@@ -277,11 +279,11 @@ df_with_localisation_cleaned.isna().sum()
 # Wartości sprawdzono zarówno dla podróży samochodem osobowym jak i transportem zbiorowym. 
 
 # Pobranie danych o czasie podróży i dystansie do tymczasowej ramki danych travel_info_results_driving
-travel_info_result_driving = df_with_localisation.loc[:, ["miasto", "dzielnica", "ulica"]].apply(obtain_travel_info_driving, axis=1, result_type="expand")
+travel_info_result_driving = df_with_localisation_cleaned.loc[:, ["miasto", "dzielnica", "ulica"]].apply(obtain_travel_info_driving, axis=1, result_type="expand")
 travel_info_results_driving.columns = ["czas_auto", "dystans_auto"]
 
 # Pobranie danych o czasie podróży i dystansie do tymczasowej ramki danych travel_info_results_transit
-travel_info_result_transit = df_with_localisation.loc[:, ["miasto", "dzielnica", "ulica"]].apply(obtain_travel_info_transit, axis=1, result_type="expand")
+travel_info_result_transit = df_with_localisation_cleaned.loc[:, ["miasto", "dzielnica", "ulica"]].apply(obtain_travel_info_transit, axis=1, result_type="expand")
 travel_info_results_transit.columns = ["czas_zbiorowy", "dystans_zbiorowy"]
 
 # +
@@ -472,13 +474,6 @@ for feature in ["teren_zamkniety",
 # - występowanie informacji o przynależności piwnicy stanowi 50 % ogłoszeń
 # - blisko 25 % nieruchomości nie posiada monitoringu czy ochrony
 
-# +
-# for feature in ["powierzchnia", "cena", "cena_metr", "czas_auto", "czas_zbiorowy", "dystans_auto", "dystans_zbiorowy"]:
-#     fig = go.Figure(px.histogram(data_frame=df_with_localisation_cleaned, x=feature, nbins=20))
-#     fig.show()
-#     fig = go.Figure(px.box(data_frame=df_with_localisation_cleaned, x=feature))
-#     fig.show()
-
 for feature in ["powierzchnia", "cena", "cena_metr", "czas_auto", "czas_zbiorowy", "dystans_auto", "dystans_zbiorowy"]:
     fig = plt.figure(figsize=(16,8))
     sns.histplot(data=df_with_localisation_cleaned, x=feature)
@@ -486,7 +481,6 @@ for feature in ["powierzchnia", "cena", "cena_metr", "czas_auto", "czas_zbiorowy
     fig = plt.figure(figsize=(16,8))
     sns.boxplot(data=df_with_localisation_cleaned, y=feature)
     plt.plot()
-# -
 
 # Dzięki wykresom boxplot można zauważyć obserwacje odstające w skali całego zbioru. Są to nieruchomości o powierzchni powyżej 120 metrów kwadratowych i cenie za metr 20000. Analizując wykres boxplot oraz histogram dla zmiennej cena, można zauważyć kilka bardzo wysokich ofert - w tym oferta z ceną 16 milionów złotych. 
 
@@ -688,7 +682,7 @@ random_search_grid = {"learning_rate": uniform(0.0001, 0.1),
                      }
 
 # Przygotowanie obiektów estymatora oraz metody do szukania hyperparametrów
-lgbm_model = lgbm.LGBMRegressor(n_jobs=-1, n_iter=200)
+lgbm_model = LGBMRegressor(n_jobs=-1, n_iter=200)
 random_search = RandomizedSearchCV(estimator=lgbm_model, 
                                    param_distributions=random_search_grid, 
                                    n_iter=50, 
