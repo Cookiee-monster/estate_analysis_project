@@ -33,4 +33,5 @@ Projekt zaliczeniowy w ramach przedmiotu Bazy Danych i Hurtownie Danych w ramach
 7. Rejestracja kernella w Jupyter Notebook:
 `python -m ipykernel install --user --name estate`
 8. Pobranie **instantclient_19_8** ze stron Oracle oraz ustawienie ścieżki do pliku exe do zmiennej systemowej **PATH**
+9. Uzupełenienie danych dostępowych do bazy dancyh oraz klucza API Google w pliku config\config.yaml
 
