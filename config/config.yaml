@@ -1,0 +1,6 @@
+host: host bazy danych
+port: port
+service_name: nazwa usługi
+user: nazwa użytkownika
+password: hasło
+API_KEY: klucz API do usług Google
