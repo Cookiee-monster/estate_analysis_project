@@ -8,9 +8,9 @@ Projekt zaliczeniowy w ramach przedmiotu Bazy Danych i Hurtownie Danych w ramach
 - dedykowane funkcje wykorzystane podczas analizy
 - skrypty SQL wykorzystane do stworzenia bazy danych
 - pliki konfiguracyjne
-- raport w formacie HTML [archiwum zip](https://github.com/Cookiee-monster/estate_analysis_project/blob/master/notebooks/analiza_raport.zip)
+- raport w formacie HTML [Pobierz archiwum zip z raportem](https://github.com/Cookiee-monster/estate_analysis_project/raw/master/notebooks/analiza_raport.zip)
 - opis pobrania danych [opis.md](https://github.com/Cookiee-monster/estate_analysis_project/blob/master/Opis.md)
-- plik analiza.py możliwy do otwarcia jako Jupyter Notebook
+- plik analiza.py możliwy do otwarcia m.in w Jupyter Notebook
 
 
 ### Stworzenie środowiska
