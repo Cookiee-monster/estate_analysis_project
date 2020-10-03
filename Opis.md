@@ -7,8 +7,8 @@ Pierwszym etapem było pobranie listy adresów szczegółowych ofert z wszystkic
  Gdańska, Gdyni i Sopotu) spośród wszystkich ofert serwisu:
 ![image](https://user-images.githubusercontent.com/43417324/94979766-18a00080-0525-11eb-8c26-111144463a12.png)
 
-Poszczególne adresy URL szczegółowych ofert zostały pobrane i zapisane w bazie danych w tabeli OTODOM_OFFERS wraz z dat
-ą scrapowania oraz statusem 0 (oferta nie została jeszcze poddana scrapingowi).
+Poszczególne adresy URL szczegółowych ofert zostały pobrane i zapisane w bazie danych w tabeli OTODOM_OFFERS wraz z datą 
+scrapowania oraz statusem 0 (oferta nie została jeszcze poddana scrapingowi).
 
 Została do tego stworzona i wykorzystana funkcja `collect_offers_urls(config, base_url)`
 
@@ -29,9 +29,10 @@ Proces pobierania informacji o danej ofercie poprzedzony jest pobranie adresu UR
 
 W ramach informacji dodatkowych brano pod uwagę tylko informacje o:
 `"TEREN_ZAMKNIETY", "BALKON", "OGRODEK", "GARAZ_MIEJSCE", "WINDA", "PIWNICA", "MONITORING_OCHRONA"`
-Gdy informacja się pojawiała przypisywano jej wartość 1, przy braku wartość 0. Uznano, że głównym celem oferty jest
- jak najlepsze zareklamowanie nieruchomości więc w gestii osoby sprzedającej jest podanie wszelkich atrybutów/cech
-  nieruchomości mogącej wyróżnić daną ofertę - stąd wcześniej opisane założenie. 
+Gdy informacja się pojawiała, przypisywano jej wartość 1, przy braku wartość 0. 
+
+Uznano, że głównym celem oferty jest jak najlepsze zareklamowanie nieruchomości więc w gestii osoby sprzedającej jest
+podanie wszelkich atrybutów/cech nieruchomości mogącej wyróżnić daną ofertę. 
   
  Dane, po przetworzeniu np. pozbycie się jednostek, rozbicie lokalizacji na miasto, dzielnicę i miasto itp. trafiały
   do tabeli OTODOM_OFFERS_DETAILS
@@ -43,8 +44,9 @@ W przypadku udanego pobrania danych ze strony oferty, data pobrania danych oraz 
  
  Została do tego stworzona i wykorzystana funkcja `scrape_offers(config, limit_offers_to_scrape=None)`
 ##### 3. Wykorzystanie zbioru danych do analizy
-Przygotowany zbiór został pobrany do pamięci Jupyter Notebook, korzystając z bibliotek pandas, sqlalchemy oraz
- cx_Oracle, gdzie został poddany analizie.
+Przygotowany zbiór został pobrany do pamięci Jupyter Notebook (korzystając z bibliotek pandas, sqlalchemy oraz
+ cx_Oracle) gdzie został poddany analizie.
  
 ##### 4. Proces analizy 
-Całość analizy, przetwarzania danych oraz modelowania zostało przedstawione w raporcie.html oraz pliku analiza.py
+Całość analizy, przetwarzania danych oraz modelowania zostało przedstawione w **analiza_raport.html** (archiwum ZIP)
+) oraz pliku **analiza.py**, znajdujących się w folderze **notebooks**.
